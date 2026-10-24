@@ -1,18 +1,44 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme } from 'react-native';
+import { useEffect } from 'react';
+import { Stack, useRouter, useSegments } from 'expo-router';
+import { supabase } from '../lib/supabase';
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
+export default function RootLayout() {
+  const router = useRouter();
+  const segments = useSegments();
 
-SplashScreen.preventAutoHideAsync();
+  useEffect(() => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        const inAuthGroup = segments[0] === 'login' || segments[0] === undefined;
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
+        if (!session && !inAuthGroup) {
+          router.replace('/login');
+        }
+      }
+    );
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, [segments, router]);
+
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AnimatedSplashOverlay />
-      <AppTabs />
-    </ThemeProvider>
+    <Stack
+      screenOptions={{
+        headerStyle: { backgroundColor: '#F8FAFC' },
+        headerTintColor: '#1E293B',
+        headerTitleStyle: { fontWeight: 'bold' },
+        headerShadowVisible: false,
+      }}
+    >
+      <Stack.Screen name="index" options={{ headerShown: false }} />
+      <Stack.Screen name="login" options={{ title: 'Sign In', headerShown: false }} />
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="classes/create" options={{ title: 'Create Class' }} />
+      <Stack.Screen name="classes/[id]" options={{ title: 'Class Details' }} />
+      <Stack.Screen name="classes/[id]/add-student" options={{ title: 'Add Student' }} />
+      <Stack.Screen name="classes/[id]/attendance" options={{ title: 'Attendance' }} />
+      <Stack.Screen name="students/[id]" options={{ title: 'Student Profile' }} />
+    </Stack>
   );
 }
